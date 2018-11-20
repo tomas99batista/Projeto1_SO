@@ -1,0 +1,26 @@
+1- Ver todas as subdiretorias da diretoria(ou varias) passada como argumento
+
+Opçoes
+
+-n: expressão regular que é verificada com o nome dos ficheiros 
+    // $./totalspace.sh -n “.*sh” sop
+
+-l: indicação de quantos, de entre os maiores ficheiros em cada diretoria, devem ser considerados 
+    // $./totalspace.sh -l 2 sop
+
+-d: especificação do data máxima de acesso acesso aos ficheiros
+    // $./totalspace -d "Sep 10 10:00"
+
+-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
+    Gera 1 linha de saída por cada ficheiro
+    -L e -l nao podem ser usadas conjuntamente
+
+-r: por ordem inversa
+
+-a: por ordem alfabetica
+
+
+->deve tratar de forma correcta ficheiros e directorias que contenham espaços no seu nome
+
+->Se por alguma razão (falta de permissões, por exemplo), não seja possível aceder a uma directoria ou determinar o 
+tamanho de um ficheiro numa directoria, o espaço ocupado pelos ficheiros dessa directoria deve ser assinalado com NA.
