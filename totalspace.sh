@@ -20,7 +20,7 @@ function option_l(){
 
 #-d: especificação do data máxima de acesso acesso aos ficheiros//$./totalspace -d "Sep 10 10:00"
 function option_d(){
-    echo
+    stat totalspace.sh | head -5 | tail -1 | cut -d " " -f2
 }
 
 #-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
@@ -31,12 +31,28 @@ function option_L(){
 
 #-r: por ordem inversa
 function option_r(){
-    echo
+    #   -r, --reverse               reverse the result of comparisons
+    declare -a o=()
+    for i;do
+        o=("$i" "${o[@]}")
+    done
+    printf "%s\n" "${o[@]}"
+    #_-_-_-_-_-_-_-_-_-_-_-_-_-
+    o=
+    for i;do
+        o="$i $o"
+    done
+    printf "%s\n" $o
 }
 
 #-a: por ordem alfabetica
 function option_a(){
-    echo
+    # o Sort sem nenhum argumento faz o sort alfabetico
+    A=( $(sort <(printf "%s\n" "$@")) )
+    printf "%s\n" "${A[@]}"
+    #sort the arguments list i.e."$@"`
+    #store output of sort in an array
+    #Print the sorted array
 }
 
 myArray=()
@@ -129,6 +145,6 @@ done
 
 # for i in "${!assoc[@]}"
 # do
-    # echo "key  : $i"
-    # echo "value: ${assoc[$i]}"
+# echo "key  : $i"
+# echo "value: ${assoc[$i]}"
 # done
