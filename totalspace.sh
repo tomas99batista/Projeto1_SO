@@ -10,25 +10,21 @@ set -o pipefail
 
 #-n expressão regular que é verificada com o nome dos ficheiros//$./totalspace.sh -n “.*sh” sop
 option_n(){
-     declare -A move
-    # struct=$1
-    # echo "${struct}"
-    # echo "${!struct[*]}"
-    #^^^^^^^n sei ate q ponto e necessario fazer isto dado que o array que e passado a func esta ja definido
-    #inbestigue-se..........................
+    declare -A n_array
     for i in ${!files[*]}
     do
         echo "${i}"
-        if [[ "$i" = *p* ]]; then
-            move["${i}"]=0
+        if [[ "$i" = *${1}* ]]; then
+            n_array["${i}"]=0
             content=${files["${i}"]}
-            move["${i}"]=${content}
+            n_array["${i}"]=${content}
             echo "${i}"
         fi
     done
-    echo "${move[@]}"
+    echo "${n_array[@]}"
+    
 }
-option_n 
+option_n
 
 #-l: indicação de quantos, de entre os maiores ficheiros em cada diretoria, devem ser considerados//$./totalspace.sh -l 2 sop
 function option_l(){
@@ -38,7 +34,21 @@ function option_l(){
 
 #-d: especificação do data máxima de acesso acesso aos ficheiros//$./totalspace -d "Sep 10 10:00"
 function option_d(){
-    stat totalspace.sh | head -5 | tail -1 | cut -d " " -f2
+    declare -A date_array
+    arg_date=$1
+    arg_date=$( date -d ${arg_date} +"%Y%m%d")
+    for i in ${!files[*]}
+    do
+        date=stat $i | head -5 | tail -1 | cut -d " " -f2
+        date=$( date -d ${date} +"%Y%m%d")
+        if [ $date -gt $arg_date ]; then
+            date_array["${i}"]=0
+            content=${files["${i}"]}
+            date_array["${i}"]=${content}
+            echo "${i}"
+        fi
+    done
+    
 }
 
 #-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
@@ -126,7 +136,7 @@ while getopts '::n:f:l:d:L:ra' OPTION; do
     case "$OPTION" in
         n)
             nvalue="$OPTARG"
-            
+            option_n nvalue
         ;;
         
         l)
