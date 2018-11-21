@@ -67,6 +67,7 @@ walk() {
     for entry in "$1"/*; do
         if [[ -d "${entry}" ]]; then
             dirs[$entry]=0;
+            # echo $entry
             walk $entry
         fi
         #IMPLEMENTAR ALGO DO ESTILO DEPTH-SEARCH PARA IR SABENDO O SIZE DE CADA DIR
@@ -74,6 +75,7 @@ walk() {
         if [[ -f "$entry" ]]; then
             if [[ -v files[$entry] ]]; then
                 dir=${entry##*/}
+                # echo $dir
                 # dir="$(dirname "${entry}")"
                 size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
                 old_size=files["$dir"]
@@ -82,6 +84,7 @@ walk() {
             else
                 # dir="$(dirname "${entry}")"
                 dir=${entry##*/}
+                # echo $dir
                 files["$dir"]=0
                 size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
                 files["$dir"]=$size
@@ -109,7 +112,7 @@ if [ "$n_flag" = 1 ]; then
             echo "${i}"
         fi
     done
-#
+    #Como a eficiencia n funciona posso copiar do n_array p/ o array files!!!!!
 fi
 
 
@@ -121,25 +124,41 @@ function option_l(){
 
 #-d: especificação do data máxima de acesso acesso aos ficheiros//$./totalspace -d "Sep 10 10:00"
 
+
+#DATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+
 #-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
 #Gera 1 linha de saída por cada ficheiro
+declare -A L_array
+
 if [ "$L_flag" = 1 ]; then
-    declare -A L_array
-    sort -k2 $files
-    for i in ${!files[*]}
+    # sort -k2 $files
+    for k in "${!files[@]}"
     do
-        # echo "${i}"
-        if [[ "$i" = *${nvalue}* ]]; then
-            L_array["${i}"]=0
-            content=${files["${i}"]}
-            L_array["${i}"]=${content}
-            echo "${i}"
-        fi
+        L_array["${k}"]=${files["$k"]}
+        echo ${files["${k}"]} ${k}
+        # echo ${files["$k"]} $k
+    done | sort -rn -k1 | head -${Lvalue}
+    
+    for k in "${!L_array[@]}"
+    do
+        echo "Entrou"
+        echo  ${k} #${L_array["${k}"]}
     done
-#
 fi
 
 #-r: por ordem inversa
+# if [ "$r_flag" = 1 ]; then
+
+# # fi
+#     declare -A L_array
+#     # sort -k2 $files
+#    for k in "${!files[@]}"
+#         do
+#             echo ${files["$k"]} $k
+#         done | sort -rn -k1 | head -${Lvalue}
+# fi
 function option_r(){
     #   -r, --reverse               reverse the result of comparisons
     declare -a o=()
