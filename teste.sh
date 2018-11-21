@@ -1,30 +1,49 @@
 #!/bin/bash
 
-option_n(){
-    declare -A move
-    # struct=$1
-    # echo "${struct}"
-    # echo "${!struct[*]}"
-    #^^^^^^^n sei ate q ponto e necessario fazer isto dado que o array que e passado a func esta ja definido
-    #inbestigue-se..........................
-    for i in ${!array[*]}
-    do
-        echo "${i}"
-        if [[ "$i" = *p* ]]; then
-            move["${i}"]=0
-            content=${array["${i}"]}
-            move["${i}"]=${content}
-            echo "${i}"
-        fi
-    done
-    echo "${move[@]}"
-}
-declare -A array
-array[sop1.txt]=0
-array[sop2.-/]=olas
-array[opop2]=0
 
-option_n array
+# for i in "${!files[@]}"
+# do
+#     echo "${i} = ${files[$i]}"
+# done
+# for i in "${!dirs[@]}"
+# do
+#     echo "${i} = ${dirs[$i]}"
+# done
+
+
+# option_n(){
+#     declare -A move
+#     # struct=$1
+#     # echo "${struct}"
+#     # echo "${!struct[*]}"
+#     #^^^^^^^n sei ate q ponto e necessario fazer isto dado que o array que e passado a func esta ja definido
+#     #inbestigue-se..........................
+#     for i in ${!array[*]}
+#     do
+#         echo "${i}"
+#         if [[ "$i" = *p* ]]; then
+#             move["${i}"]=0
+#             content=${array["${i}"]}
+#             move["${i}"]=${content}
+#             echo "${i}"
+#         fi
+#     done
+#     echo "${move[@]}"
+# }
+declare -A array
+array[10]=sop
+array[5]=sop/1
+array[15]=sop/2
+
+IFS=$'\n' sorted=($(sort <<<"${array[*]}"))
+printf "[%s]\n" "${sorted[@]}"
+# echo ${array[@]}
+# for item in ${!array[@]}
+# do
+#     echo $item "matches with" ${array[$item]}
+# done | sort 
+
+# sort -k1 $array | echo ${array[@]}
 
 # for i in ${!move[*]}
 # do
