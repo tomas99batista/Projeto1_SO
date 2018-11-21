@@ -1,20 +1,64 @@
 #!/bin/bash
+
+option_n(){
+    declare -A move
+    # struct=$1
+    # echo "${struct}"
+    # echo "${!struct[*]}"
+    #^^^^^^^n sei ate q ponto e necessario fazer isto dado que o array que e passado a func esta ja definido
+    #inbestigue-se..........................
+    for i in ${!array[*]}
+    do
+        echo "${i}"
+        if [[ "$i" = *p* ]]; then
+            move["${i}"]=0
+            content=${array["${i}"]}
+            move["${i}"]=${content}
+            echo "${i}"
+        fi
+    done
+    echo "${move[@]}"
+}
+declare -A array
+array[sop1.txt]=0
+array[sop2.-/]=olas
+array[opop2]=0
+
+option_n array
+
+# for i in ${!move[*]}
+# do
+#         echo "${i}"
+# done
+# if [[ "\t${array[@]}\t" =~ "\t${value}\t" ]]; then
+#     echo "yep, it's there"
+# fi
+
 #----------------------------------------------------------------------------------------------------------------------------
-# for f in *; do
-#     if [[ -d $f ]]; then
-#         $f is a directory
-#     fi
+
+# array=(one two three four [5]=five)
+# declare -A menu
+# menu[drink]=coffee
+# menu[food]=sandwich
+# menu[desert]=pudim
+
+# # for index in ${!array[*]}
+# # do
+# #     printf "%4d: %s\n" $index ${array[$index]}
+# # done
+
+# for item in ${menu[*]}
+# do
+#     printf "   %s\n" $item
 # done
-# function listagem(){
-# for f in $dir/* ; do
-#     dir=$f
-#         if [ -d ${dir} ]; then
-#             # Will not run if no directories are available
-#             echo $dir
-#             listagem
-#         fi
+
+# for animal in "${ARRAY[@]}" ; do
+# KEY="${animal%%:*}"
+# VALUE="${animal##*:}"
+# printf "%s likes to %s.\n" "$KEY" "$VALUE"
 # done
-# }
+#
+# printf "%s is an extinct animal which likes to %s\n" "${ARRAY[1]%%:*}" "${ARRAY[1]##*:}"
 #----------------------------------------------------------------------------------------------------------------------------
 # shopt -s globstar
 # for i in ./**/*

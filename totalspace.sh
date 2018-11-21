@@ -10,8 +10,26 @@ set -o pipefail
 
 #-n expressão regular que é verificada com o nome dos ficheiros//$./totalspace.sh -n “.*sh” sop
 option_n(){
-    echo
+     declare -A move
+    # struct=$1
+    # echo "${struct}"
+    # echo "${!struct[*]}"
+    #^^^^^^^n sei ate q ponto e necessario fazer isto dado que o array que e passado a func esta ja definido
+    #inbestigue-se..........................
+    for i in ${!files[*]}
+    do
+        echo "${i}"
+        if [[ "$i" = *p* ]]; then
+            move["${i}"]=0
+            content=${files["${i}"]}
+            move["${i}"]=${content}
+            echo "${i}"
+        fi
+    done
+    echo "${move[@]}"
 }
+option_n 
+
 #-l: indicação de quantos, de entre os maiores ficheiros em cada diretoria, devem ser considerados//$./totalspace.sh -l 2 sop
 function option_l(){
     #Fazer aqui um sort
@@ -55,46 +73,53 @@ function option_a(){
     #Print the sorted array
 }
 
-myArray=()
-count=0
-declare -A assoc[$1]=0
-# declare last_size=0;
+
 
 #Function recursiva para listar diretorios
+declare -A dirs
+declare -A files
 walk() {
     # Se e um diretorio chama a walk() ---> recursiva
     for entry in "$1"/*; do
         if [[ -d "${entry}" ]]; then
-            assoc[$entry]=0
-            ARRNAME="$entry"
-            myArray[count]="$ARRNAME"
-            count=$count+1
-            walk "$entry";
-            # # echo $last_size
+            dirs[$entry]=0;
+            walk $entry
         fi
+        #IMPLEMENTAR ALGO DO ESTILO BREADTH-FIRST PARA IR SABENDO O SIZE DE CADA DIR
+        #ls -LRlh
         
         if [[ -f "$entry" ]]; then
-            file_specs "$entry";
+            if [[ -v files[$entry] ]]; then
+                dir=${entry##*/}
+                # dir="$(dirname "${entry}")"
+                size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
+                old_size=files["$dir"]
+                new_size=$((old_size+size))
+                files[$dir]=$total_size
+            else
+                # dir="$(dirname "${entry}")"
+                dir=${entry##*/}
+                files["$dir"]=0
+                size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
+                files["$dir"]=$size
+            fi
         fi
     done
 }
 
-
-file_specs() {
-    DIR="$(dirname "${entry}")"
-    SIZE="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
-    oldSize=${assoc[$DIR]}
-    newSize=$[$oldSize+$SIZE]
-    assoc["$DIR"]=$newSize
+for item in $@; do
+    walk "${item}"
     
-    #echo "$SIZE"
-    # FILE_NAME="$(basename "${entry}")"
-    # NAME="${FILE_NAME%.*}"
-    # EXT="${FILE_NAME##*.}"
-    # DATE="$(stat $entry | tail -4 | head -1 | cut -d ' ' -f2)"
-    # printf "\n%s\n" "${entry}"
-    # printf "%s \t %s \t %s\n" "$SIZE" "$NAME" "$DATE"
-}
+    # printf "%s\n" "${assoc[@]}"
+done
+# for i in "${!files[@]}"
+# do
+#     echo "${i} = ${files[$i]}"
+# done
+# for i in "${!dirs[@]}"
+# do
+#     echo "${i} = ${dirs[$i]}"
+# done
 
 #MAIN
 while getopts '::n:f:l:d:L:ra' OPTION; do
@@ -105,7 +130,7 @@ while getopts '::n:f:l:d:L:ra' OPTION; do
         ;;
         
         l)
-            #NAO PODE CONJUGAR COM -L
+            l_flag=1; #fazer if, se as 2 flagas tiverem on da block
             lvalue="$OPTARG"
             echo "l c/ arg $OPTARG"
         ;;
@@ -116,7 +141,7 @@ while getopts '::n:f:l:d:L:ra' OPTION; do
         ;;
         
         L)
-            #NAO PODE CONJUGAR COM -l
+            L_flag=1
             Lvalue="$OPTARG"
             echo "L c/ arg $OPTARG"
         ;;
@@ -137,11 +162,10 @@ while getopts '::n:f:l:d:L:ra' OPTION; do
 done
 shift "$(($OPTIND -1))"
 
-for item in $@; do
-    [[ -z "${item}" ]] && ABS_PATH="${PWD}" || cd "${item}" && ABS_PATH="${PWD}"
-    walk "${ABS_PATH}"
-    # printf "%s\n" "${assoc[@]}"
-done
+# for item in $@; do
+#     walk "${item}"
+#     # printf "%s\n" "${assoc[@]}"
+# done
 
 # for i in "${!assoc[@]}"
 # do
