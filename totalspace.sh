@@ -6,19 +6,16 @@ set -e
 set -u
 set -o pipefail
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-#// TODO: Walk recursiva para guardar dados estilo depth first
-#//TODO: Tratar da -l depois da walk()
+#//TODO: totalspace not working
 #//TODO: Tratar -d input M D H:M
-#//TODO: Ver -r && -a
+#//TODO: Tratar da -l
 #//TODO: Ver se no -L imprimir com extensao e tudo
-#//TODO: Possibilidade de em vez de ir criando varios arrays ir eliminando do geral
-#https://stackoverflow.com/questions/16860877/remove-an-element-from-a-bash-array
-#https://www.artificialworlds.net/blog/2012/10/17/bash-associative-array-examples/
-#Estudar a melhor maneira
-#//TODO: Caminhos relativos e absolutos
+#//TODO: Ver -r && -a
+
+#//TODO: Caminhos relativos e absolutos ?
 #//TODO: Espacos nos caminhos
 #//TODO: NA nos files
-#//TODO: nspace
+#//TODO: ./nspace
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 #MAIN
 n_flag=0
@@ -71,124 +68,123 @@ if (( $l_flag == 1 && $L_flag == 1 )); then
     exit 1  #1=code error
 fi
 
-#Recursive function to list directories and files
+# #Recursive function to list directories and files
 declare -A dirs
 declare -A files
 walk() {
-    # Se e um diretorio chama a walk() ---> recursiva
     for entry in "$1"/*; do
-        if [[ -d "${entry}" ]]; then
-            dirs[$entry]=0;
-            # echo $entry
-            walk $entry
-        fi
-        #IMPLEMENTAR ALGO DO ESTILO DEPTH-SEARCH PARA IR SABENDO O SIZE DE CADA DIR
-        #ls -LRlh
-        if [[ -f "$entry" ]]; then
-            if [[ -v files[$entry] ]]; then
-                dir=${entry##*/}
-                # dir="$(dirname "${entry}")"
-                # echo $dir
-                size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
-                old_size=files["$dir"]
-                new_size=$((old_size+size))
-                files[$dir]=$total_size
-            else
-                # dir="$(dirname "${entry}")"
-                dir=${entry##*/}
-                # echo $dir
-                files["$dir"]=0
-                size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
-                files["$dir"]=$size
+        totalspace=0 #<<<<<<<<<<<<<<<<<<<<<<<<<<
+        if [[ -f "${entry}" ]]; then
+            #arg_date=$(date -d ${dvalue} +"%Y%m%d")
+            #date=stat $i | head -5 | tail -1 | cut -d " " -f2
+            #date=$(date -d ${date} +"%Y%m%d")
+            size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
+            if [ "$l_flag" = 0 ]; then  #l = false
+                if (( $d_flag == 1 && $n_flag == 1 )); then #d e n true
+                    if [[ "$entry" = *${nvalue}* ]]; then
+                        #IF DATAAAA <<<<<<<<<<<<<<<<<
+                        #if [ $arg_date -ge $date ]; then
+                        files["${entry}"]=$size
+                        totalspace=$((totalspace + size))
+                        #FI
+                    fi
+                fi
+                if [ "$d_flag" = 1 ]; then #only d true
+                    #IF DATAAAA <<<<<<<<<<<<<<<<<
+                    #if [ $arg_date -ge $date ]; then
+                    files["${entry}"]=$size
+                    totalspace=$((totalspace + size))
+                fi
+                if [ "$n_flag" = 1 ]; then #only n true
+                    if [[ "$entry" = *${nvalue}* ]]; then
+                        files["${entry}"]=$size
+                        totalspace=$((totalspace + size))
+                    fi
+                fi
+                if (( $d_flag == 0 && $n_flag == 0 )); then
+                    files["$entry"]=$size
+                    totalspace=$((totalspace + size))
+                fi
             fi
+        fi
+        if [[ -d "${entry}" ]]; then
+            dirs[$entry]=$totalspace
+            walk $entry
         fi
     done
 }
 
-#for every input of
+# for entry in $@; do
+#     if [[ -d "${entry}" ]]; then
+#         root=$entry
+#         # echo $root
+#         dirs["${root}"]=0;
+#     fi
+# done
+
+#Call Walk with directories passed on argument
 for item in $@; do
     walk "${item}"
 done
 
-#-n expressão regular que é verificada com o nome dos ficheiros//$./totalspace.sh -n “.*sh” sop
 if [ "$n_flag" = 1 ]; then
-    declare -A n_array
-    for i in ${!files[*]}
-    do
-        # echo "${i}"
-        if [[ "$i" = *${nvalue}* ]]; then
-            n_array["${i}"]=0
-            content=${files["${i}"]}
-            n_array["${i}"]=${content}
-            echo "${i}"
-        fi
+    for dir in ${!dirs[@]}; do
+        dir_array=("ls -l dir")
+        for file in ${!dir_array[@]}; do
+            if [ -f file ]; then
+                n_array="(print dir_array | sort -nr | head -${nvalue})"
+                for f in $n_array; do
+                    f_size="$(stat $f | head -2 | tail -1 | awk '{print $2}')"
+                    size=$((f_size + size))
+                done
+            fi
+        done
     done
-    #Como a eficiencia n funciona posso copiar do n_array p/ o array files!!!!!
+    dirs["${dir}"}]=size    
 fi
 
-#-l: indicação de quantos, de entre os maiores ficheiros em cada diretoria, devem ser considerados//$./totalspace.sh -l 2 sop
-function option_l(){
-    #Fazer aqui um sort
-    echo
-}
-
-#-d: especificação do data máxima de acesso acesso aos ficheiros//$./totalspace -d "Sep 10 10:00"
-if [ "$d_flag" = 1 ]; then
-    declare -A d_array
-    arg_date=$(date -d ${dvalue} +"%Y%m%d")
-    date=stat $i | head -5 | tail -1 | cut -d " " -f2
-    date=$(date -d ${date} +"%Y%m%d")
-    if [ $arg_date -ge $date ]; then
-        d_array["${i}"]=0
-        # echo "${i}"
-        if [[ "$i" = *${nvalue}* ]]; then
-            d_array["${i}"]=0
-            content=${files["${i}"]}
-            date_array["${i}"]=${content}
-            d_array["${i}"]=${content}
-            echo $i $content
-        fi
-    fi
-fi
-
-#-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
-#Gera 1 linha de saída por cada ficheiro
-declare -A L_array
 if [ "$L_flag" = 1 ]; then
-    for k in "${!files[@]}"
-    do
+    for k in "${!files[@]}"; do
         echo ${files["${k}"]} ${k}
-    done | sort -rn -k1 | head -${Lvalue} > L_file.txt
-    
-    cat "L_file.txt" | while read line; do
-        echo "$line"
-    done
-    
+    done | sort -rn -k1 | head -${Lvalue} 
 fi
 
-#-r: por ordem inversa
-function option_r(){
-    #   -r, --reverse               reverse the result of comparisons
-    # if [ "$r_flag" = 1 ]; then
-    declare -a o=()
-    for i;do
-        o=("$i" "${o[@]}")
-    done
-    printf "%s\n" "${o[@]}"
-    #_-_-_-_-_-_-_-_-_-_-_-_-_-
-    o=
-    for i;do
-        o="$i $o"
-    done
-    printf "%s\n" $o
-}
+#PRINT ALLF FILES
+for item in ${!files[@]}; do
+    echo ${files["${item}"]} "${item}"
+done
+echo "--------------------------"
+#PRINT ALL DIRETORIES AND RESPETIVE SIZES
+for item in ${!dirs[@]}; do
+    echo ${dirs["${item}"]} "${item}"
+done
 
-#-a: por ordem alfabetica
-function option_a(){
-    # o Sort sem nenhum argumento faz o sort alfabetico
-    A=( $(sort <(printf "%s\n" "$@")) )
-    printf "%s\n" "${A[@]}"
-    #sort the arguments list i.e."$@"`
-    #store output of sort in an array
-    #Print the sorted array
-}
+#------------------------------------------------------------------------------------------------------------------
+# # -r: por ordem inversa
+# function option_r(){
+#     echo
+#     #   -r, --reverse               reverse the result of comparisons
+#     # if [ "$r_flag" = 1 ]; then
+#     # declare -a o=()
+#     # for i;do
+#     # o=("$i" "${o[@]}")
+#     # done
+#     # printf "%s\n" "${o[@]}"
+#     # _-_-_-_-_-_-_-_-_-_-_-_-_-
+#     # o=
+#     # for i;do
+#     # o="$i $o"
+#     # done
+#     # printf "%s\n" $o
+# }
+
+# # -a: por ordem alfabetica
+# function option_a(){
+#     echo
+#     # o Sort sem nenhum argumento faz o sort alfabetico
+#     # A=( $(sort <(printf "%s\n" "$@")) )
+#     # printf "%s\n" "${A[@]}"
+#     # sort the arguments list i.e."$@"`
+#     # store output of sort in an array
+#     # Print the sorted array
+# }
