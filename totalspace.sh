@@ -5,9 +5,21 @@
 set -e
 set -u
 set -o pipefail
-
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-
+#// TODO: Walk recursiva para guardar dados estilo depth first
+#//TODO: Tratar da -l depois da walk()
+#//TODO: Tratar -d input M D H:M
+#//TODO: Ver -r && -a
+#//TODO: Ver se no -L imprimir com extensao e tudo
+#//TODO: Possibilidade de em vez de ir criando varios arrays ir eliminando do geral
+#https://stackoverflow.com/questions/16860877/remove-an-element-from-a-bash-array
+#https://www.artificialworlds.net/blog/2012/10/17/bash-associative-array-examples/
+#Estudar a melhor maneira
+#//TODO: Caminhos relativos e absolutos
+#//TODO: Espacos nos caminhos
+#//TODO: NA nos files
+#//TODO: nspace
+#-------------------------------------------------------------------------------------------------------------------------------------------------------
 #MAIN
 n_flag=0
 l_flag=0
@@ -75,8 +87,8 @@ walk() {
         if [[ -f "$entry" ]]; then
             if [[ -v files[$entry] ]]; then
                 dir=${entry##*/}
-                # echo $dir
                 # dir="$(dirname "${entry}")"
+                # echo $dir
                 size="$(stat $entry | head -2 | tail -1 | awk '{print $2}')"
                 old_size=files["$dir"]
                 new_size=$((old_size+size))
@@ -96,7 +108,6 @@ walk() {
 #for every input of
 for item in $@; do
     walk "${item}"
-    # printf "%s\n" "${assoc[@]}"   #Tests
 done
 
 #-n expressão regular que é verificada com o nome dos ficheiros//$./totalspace.sh -n “.*sh” sop
@@ -115,7 +126,6 @@ if [ "$n_flag" = 1 ]; then
     #Como a eficiencia n funciona posso copiar do n_array p/ o array files!!!!!
 fi
 
-
 #-l: indicação de quantos, de entre os maiores ficheiros em cada diretoria, devem ser considerados//$./totalspace.sh -l 2 sop
 function option_l(){
     #Fazer aqui um sort
@@ -123,44 +133,43 @@ function option_l(){
 }
 
 #-d: especificação do data máxima de acesso acesso aos ficheiros//$./totalspace -d "Sep 10 10:00"
-
-
-#DATAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-
+if [ "$d_flag" = 1 ]; then
+    declare -A d_array
+    arg_date=$(date -d ${dvalue} +"%Y%m%d")
+    date=stat $i | head -5 | tail -1 | cut -d " " -f2
+    date=$(date -d ${date} +"%Y%m%d")
+    if [ $arg_date -ge $date ]; then
+        d_array["${i}"]=0
+        # echo "${i}"
+        if [[ "$i" = *${nvalue}* ]]; then
+            d_array["${i}"]=0
+            content=${files["${i}"]}
+            date_array["${i}"]=${content}
+            d_array["${i}"]=${content}
+            echo $i $content
+        fi
+    fi
+fi
 
 #-L: indicação de quantos ficheiros, de entre os maiores em todas as diretorias, devem ser considerados
 #Gera 1 linha de saída por cada ficheiro
 declare -A L_array
-
 if [ "$L_flag" = 1 ]; then
-    # sort -k2 $files
     for k in "${!files[@]}"
     do
-        L_array["${k}"]=${files["$k"]}
         echo ${files["${k}"]} ${k}
-        # echo ${files["$k"]} $k
-    done | sort -rn -k1 | head -${Lvalue}
+    done | sort -rn -k1 | head -${Lvalue} > L_file.txt
     
-    for k in "${!L_array[@]}"
-    do
-        echo "Entrou"
-        echo  ${k} #${L_array["${k}"]}
+    cat "L_file.txt" | while read line; do
+        echo "$line"
     done
+    
 fi
 
 #-r: por ordem inversa
-# if [ "$r_flag" = 1 ]; then
-
-# # fi
-#     declare -A L_array
-#     # sort -k2 $files
-#    for k in "${!files[@]}"
-#         do
-#             echo ${files["$k"]} $k
-#         done | sort -rn -k1 | head -${Lvalue}
-# fi
 function option_r(){
     #   -r, --reverse               reverse the result of comparisons
+    # if [ "$r_flag" = 1 ]; then
     declare -a o=()
     for i;do
         o=("$i" "${o[@]}")
@@ -183,14 +192,3 @@ function option_a(){
     #store output of sort in an array
     #Print the sorted array
 }
-
-# for item in $@; do
-#     walk "${item}"
-#     # printf "%s\n" "${assoc[@]}"
-# done
-
-# for i in "${!assoc[@]}"
-# do
-# echo "key  : $i"
-# echo "value: ${assoc[$i]}"
-# done
