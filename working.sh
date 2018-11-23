@@ -8,9 +8,8 @@ set -o pipefail
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 #//TODO: Tratar da -l depois da walk()
 
+#//TODO: NA (fix)
 #//TODO: Espacos nos caminhos
-#//TODO: NA nos files
-
 #//TODO: nspace
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 #MAIN
@@ -80,53 +79,100 @@ walk() {
     for entry in "$1"/*; do
         #FILES
         if [[ -f "$entry" ]]; then
-            size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
-            file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
-            #l FALSE
-            if [[ "$l_flag" -eq 0 ]]; then
-                #D & N TRUE
-                if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
-                    base_name="$(basename "${entry}")"
-                    if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                        file_d=$(date -d "$file_data" +%s)
-                        if [[ "$arg_date" -ge "$file_d" ]]; then
+            if [[ -r "$entry" ]]; then
+                size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
+                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                #l FALSE
+                if [[ "$l_flag" -eq 0 ]]; then
+                    #D & N TRUE
+                    if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
+                        base_name="$(basename "${entry}")"
+                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                            file_d=$(date -d "$file_data" +%s)
+                            if [[ "$arg_date" -ge "$file_d" ]]; then
+                                files["${entry}"]=$size
+                                string=$(dirname "$entry")
+                                dirs["$string"]+=$size
+                                totalspace=$((totalspace + size))
+                            fi
+                        fi
+                    fi
+                    #D TRUE
+                    if [[ "$d_flag" -eq 1 ]]; then #only d true
+                        file_data=$(date -d "$file_data" +%s)
+                        # echo "Data.size" $file_data "Arg Data" $arg_date
+                        if [ "$arg_date" -ge "$file_data" ]; then
                             files["${entry}"]=$size
                             string=$(dirname "$entry")
                             dirs["$string"]+=$size
                             totalspace=$((totalspace + size))
                         fi
                     fi
-                fi
-                #D TRUE
-                if [[ "$d_flag" -eq 1 ]]; then #only d true
-                    file_data=$(date -d "$file_data" +%s)
-                    # echo "Data.size" $file_data "Arg Data" $arg_date
-                    if [ "$arg_date" -ge "$file_data" ]; then
-                        files["${entry}"]=$size
+                    #N TRUE
+                    if [[ "$n_flag" -eq 1 ]]; then
+                        base_name="$(basename "${entry}")"
+                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                            files["${base_name}"]=$size
+                            string=$(dirname "$base_name")
+                            dirs["$string"]+=$size
+                            totalspace=$((totalspace + size))
+                        fi
+                    fi
+                    #N & D FALSE
+                    if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                        files["$entry"]=$size
                         string=$(dirname "$entry")
                         dirs["$string"]+=$size
-                        totalspace=$((totalspace + size))
+                        totalspace=$((size + totalspace))
                     fi
                 fi
-                #N TRUE
-                if [[ "$n_flag" -eq 1 ]]; then
-                    base_name="$(basename "${entry}")"
-                    if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                        files["${base_name}"]=$size
-                        string=$(dirname "$base_name")
-                        dirs["$string"]+=$size
-                        totalspace=$((totalspace + size))
+            fi
+            if ! [[ -r "$entry" ]]; then
+                size="NA"
+                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                #l FALSE
+                if [[ "$l_flag" -eq 0 ]]; then
+                    #D & N TRUE
+                    if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
+                        base_name="$(basename "${entry}")"
+                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                            file_d=$(date -d "$file_data" +%s)
+                            if [[ "$arg_date" -ge "$file_d" ]]; then
+                                files["${entry}"]="NA"
+                                string=$(dirname "$entry")
+                                dirs["$string"]="NA"
+                            fi
+                        fi
                     fi
-                fi
-                #N & D FALSE
-                if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
-                    files["$entry"]=$size
-                    string=$(dirname "$entry")
-                    dirs["$string"]+=$size
-                    totalspace=$((size + totalspace))
+                    #D TRUE
+                    if [[ "$d_flag" -eq 1 ]]; then #only d true
+                        file_data=$(date -d "$file_data" +%s)
+                        # echo "Data.size" $file_data "Arg Data" $arg_date
+                        if [ "$arg_date" -ge "$file_data" ]; then
+                            files["${entry}"]="NA"
+                            string=$(dirname "$entry")
+                            dirs["$string"]="NA"
+                        fi
+                    fi
+                    #N TRUE
+                    if [[ "$n_flag" -eq 1 ]]; then
+                        base_name="$(basename "${entry}")"
+                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                            files["${base_name}"]="NA"
+                            string=$(dirname "$base_name")
+                            dirs["$string"]="NA"
+                        fi
+                    fi
+                    #N & D FALSE
+                    if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                        files["$entry"]="NA"
+                        string=$(dirname "$entry")
+                        dirs["$string"]="NA"
+                    fi
                 fi
             fi
         fi
+        
         #DIRETORIES
         if [[ -d "${entry}" ]]; then
             local old_value=$totalspace
@@ -137,9 +183,6 @@ walk() {
     done
     dirs[$1]=$totalspace
 }
-# >sem nada ele imprime por ordem decrescente dos sizes\
-# > > -r da reverse nos sizes\
-# > > -a imprime alfabeticamente pelos paths\
 
 #NUMERICAMENTE CHECK
 if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
@@ -149,7 +192,7 @@ if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
     if [ "$L_flag" = 1 ]; then
         for k in "${!files[@]}"; do
             echo ${files["${k}"]} ${k}
-        done | sort -rn -k1 | head -${Lvalue} 
+        done | sort -rn -k1 | head -${Lvalue}
     fi
     if [ "$L_flag" = 0 ]; then
         for item in ${!dirs[@]}; do
@@ -211,11 +254,11 @@ fi
 
 
 # # PRINT ALLF FILES
-    # for item in ${!files[@]}; do
-    # echo ${files["${item}"]} "${item}"
-    # done
+# for item in ${!files[@]}; do
+# echo ${files["${item}"]} "${item}"
+# done
 # echo "-----------------------------------"
-    # PRINT ALL DIRETORIES AND RESPETIVE SIZES
-    # for item in ${!dirs[@]}; do
-    #     echo ${dirs["${item}"]} "${item}"
+# PRINT ALL DIRETORIES AND RESPETIVE SIZES
+# for item in ${!dirs[@]}; do
+#     echo ${dirs["${item}"]} "${item}"
 # done
