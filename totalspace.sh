@@ -56,16 +56,15 @@ while getopts ':n:f:l:d:L:ra' OPTION; do
         ;;
     esac
 done
-shift "$(($OPTIND - 1))"
+shift "$((OPTIND - 1))"
 
 #if -l and -L are passed to the function, display a message and exits the script
-if (( $l_flag == 1 && $L_flag == 1 )); then
+if [[ $l_flag == 1 && $L_flag == 1 ]]; then
     printf "Not possible to combine -l and -L, try again please.\n"
     exit 1  #1=code error
 fi
 
 if [ "$d_flag" = 1 ]; then
-    df=$(date -d $dvalue)
     if [ $? -eq 0 ]; then
         arg_date=$(date -d $dvalue "+%s")
         # echo $arg_date
@@ -185,7 +184,7 @@ walk() {
     dirs[$1]=$totalspace
 }
 
-#NUMERICAMENTE CHECK
+#NUMERICAMENTE
 if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
     for item in $@; do
         walk "${item}"
@@ -202,7 +201,7 @@ if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
     fi
 fi
 
-#NUMERICAMENTE REVERSE CHECK
+#NUMERICAMENTE REVERSE
 if [[ "$r_flag" = 1 && "$a_flag" = 0 ]]; then
     for item in $@; do
         walk "${item}"
@@ -252,14 +251,3 @@ if [[ "$r_flag" = 1 && "$a_flag" = 1 ]]; then
         done | sort -r -k2 #Alfabeticamente pelos paths reverse
     fi
 fi
-
-
-# # PRINT ALLF FILES
-# for item in ${!files[@]}; do
-# echo ${files["${item}"]} "${item}"
-# done
-# echo "-----------------------------------"
-# PRINT ALL DIRETORIES AND RESPETIVE SIZES
-# for item in ${!dirs[@]}; do
-#     echo ${dirs["${item}"]} "${item}"
-# done
