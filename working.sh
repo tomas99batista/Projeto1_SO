@@ -7,11 +7,10 @@ set -u
 set -o pipefail
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 #//TODO: Tratar da -l depois da walk()
-#//TODO: Ver -r && -a
-#//TODO: Ver se no -L imprimir com extensao e tudo
 
 #//TODO: Espacos nos caminhos
 #//TODO: NA nos files
+
 #//TODO: nspace
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 #MAIN
@@ -79,11 +78,12 @@ declare -A files
 walk() {
     totalspace=0
     for entry in "$1"/*; do
+        #FILES
         if [[ -f "$entry" ]]; then
             size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
             file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
             #l FALSE
-            if [[ "$l_flag" = 0 ]]; then
+            if [[ "$l_flag" -eq 0 ]]; then
                 #D & N TRUE
                 if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
                     base_name="$(basename "${entry}")"
@@ -96,8 +96,9 @@ walk() {
                             totalspace=$((totalspace + size))
                         fi
                     fi
-                    #D TRUE
-                    elif [[ "$d_flag" -eq 1 ]]; then #only d true
+                fi
+                #D TRUE
+                if [[ "$d_flag" -eq 1 ]]; then #only d true
                     file_data=$(date -d "$file_data" +%s)
                     # echo "Data.size" $file_data "Arg Data" $arg_date
                     if [ "$arg_date" -ge "$file_data" ]; then
@@ -106,8 +107,9 @@ walk() {
                         dirs["$string"]+=$size
                         totalspace=$((totalspace + size))
                     fi
-                    #N TRUE
-                    elif [[ "$n_flag" -eq 1 ]]; then
+                fi
+                #N TRUE
+                if [[ "$n_flag" -eq 1 ]]; then
                     base_name="$(basename "${entry}")"
                     if [[ "$base_name" =~ ^$nvalue$ ]]; then
                         files["${base_name}"]=$size
@@ -115,17 +117,17 @@ walk() {
                         dirs["$string"]+=$size
                         totalspace=$((totalspace + size))
                     fi
-                    #N & D FALSE
-                    elif [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                fi
+                #N & D FALSE
+                if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
                     files["$entry"]=$size
                     string=$(dirname "$entry")
                     dirs["$string"]+=$size
                     totalspace=$((size + totalspace))
                 fi
             fi
-            
         fi
-        
+        #DIRETORIES
         if [[ -d "${entry}" ]]; then
             local old_value=$totalspace
             walk $entry
@@ -135,38 +137,85 @@ walk() {
     done
     dirs[$1]=$totalspace
 }
+# >sem nada ele imprime por ordem decrescente dos sizes\
+# > > -r da reverse nos sizes\
+# > > -a imprime alfabeticamente pelos paths\
+
+#NUMERICAMENTE CHECK
 if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
     for item in $@; do
         walk "${item}"
     done
-    for item in ${!files[@]}; do
-        echo ${files["${item}"]} "${item}"
-    done | sort -k2 #-rn
+    if [ "$L_flag" = 1 ]; then
+        for k in "${!files[@]}"; do
+            echo ${files["${k}"]} ${k}
+        done | sort -rn -k1 | head -${Lvalue} 
+    fi
+    if [ "$L_flag" = 0 ]; then
+        for item in ${!dirs[@]}; do
+            echo ${dirs["${item}"]} "${item}"
+        done | sort -rn -k1 #Numericamente pelos sizes REVERSE
+    fi
 fi
 
-if [ "$L_flag" = 1 ]; then
-    for k in "${!files[@]}"; do
-        echo ${files["${k}"]} ${k}
-    done | sort -rn -k1 | head -${Lvalue} 
+#NUMERICAMENTE REVERSE CHECK
+if [[ "$r_flag" = 1 && "$a_flag" = 0 ]]; then
+    for item in $@; do
+        walk "${item}"
+    done
+    if [ "$L_flag" = 1 ]; then
+        for k in "${!files[@]}"; do
+            echo ${files["${k}"]} ${k}
+        done | sort -rn -k1 | head -${Lvalue} | sort -n -k1
+    fi
+    if [ "$L_flag" = 0 ]; then
+        for item in ${!dirs[@]}; do
+            echo ${dirs["${item}"]} "${item}"
+        done | sort -n -k1 #Numericamente pelos sizes REVERSE
+    fi
 fi
 
-# for item in $@; do
-#     walk "${item}"
-# done #| if [[ "$r_flag" = 1 && "$a_flag" = 1 ]]; then
-#             $(sort -rn -k3)
-#     elif [ "$r_flag" = 1 ]; then
-#     $(sort -rn -k3)
-#     elif [[ "$a_flag" = 1 ]]; then
-#     echo
-#     elif [[ "$a_flag" = 0 && "$r_flag" = 0 ]]; then
-# fi
+#ALFABETICAMENTE PELOS PATHS
+if [[ "$r_flag" = 0 && "$a_flag" = 1 ]]; then
+    for item in $@; do
+        walk "${item}"
+    done
+    if [ "$L_flag" = 1 ]; then
+        for k in "${!files[@]}"; do
+            echo ${files["${k}"]} ${k}
+        done | sort -rn -k1 | head -${Lvalue} | sort -r -k2
+    fi
+    if [ "$L_flag" = 0 ]; then
+        for item in ${!dirs[@]}; do
+            echo ${dirs["${item}"]} "${item}"
+        done | sort -k2 #Alfabeticamente pelos paths
+    fi
+fi
+
+#ALFABETICAMENTE PELOS PATHS REVERSE
+if [[ "$r_flag" = 1 && "$a_flag" = 1 ]]; then
+    for item in $@; do
+        walk "${item}"
+    done
+    if [ "$L_flag" = 1 ]; then
+        for k in "${!files[@]}"; do
+            echo ${files["${k}"]} ${k}
+        done | sort -rn -k1 | head -${Lvalue} | sort -k2
+    fi
+    if [ "$L_flag" = 0 ]; then
+        for item in ${!dirs[@]}; do
+            echo ${dirs["${item}"]} "${item}"
+        done | sort -r -k2 #Alfabeticamente pelos paths reverse
+    fi
+fi
+
 
 # # PRINT ALLF FILES
-for item in ${!files[@]}; do
-    echo ${files["${item}"]} "${item}"
-done |
-echo "-----------------------------------"
-# PRINT ALL DIRETORIES AND RESPETIVE SIZES
-# for item in ${!dirs[@]}; do
-#     echo ${dirs["${item}"]} "${item}"
+    # for item in ${!files[@]}; do
+    # echo ${files["${item}"]} "${item}"
+    # done
+# echo "-----------------------------------"
+    # PRINT ALL DIRETORIES AND RESPETIVE SIZES
+    # for item in ${!dirs[@]}; do
+    #     echo ${dirs["${item}"]} "${item}"
 # done
