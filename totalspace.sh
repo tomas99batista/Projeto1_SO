@@ -85,7 +85,7 @@ walk() {
                 #l FALSE
                 if [[ "$l_flag" -eq 0 ]]; then
                     #D & N TRUE
-                    if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
+                    if [[ "$d_flag" -eq 1 && "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
                         if [[ "$base_name" =~ ^$nvalue$ ]]; then
                             file_d=$(date -d "$file_data" +%s)
@@ -98,9 +98,8 @@ walk() {
                         fi
                     fi
                     #D TRUE
-                    if [[ "$d_flag" -eq 1 ]]; then #only d true
+                    if [[ "$d_flag" -eq 1 && "$n_flag" -eq 0 ]]; then #only d true
                         file_data=$(date -d "$file_data" +%s)
-                        # echo "Data.size" $file_data "Arg Data" $arg_date
                         if [ "$arg_date" -ge "$file_data" ]; then
                             files["${entry}"]=$size
                             string=$(dirname "$entry")
@@ -109,7 +108,7 @@ walk() {
                         fi
                     fi
                     #N TRUE
-                    if [[ "$n_flag" -eq 1 ]]; then
+                    if [[ "$d_flag" -eq 0 && "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
                         if [[ "$base_name" =~ ^$nvalue$ ]]; then
                             files["${base_name}"]=$size
@@ -119,7 +118,7 @@ walk() {
                         fi
                     fi
                     #N & D FALSE
-                    if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                    if [[ "$d_flag" -eq 0 && "$n_flag" -eq 0 ]]; then
                         files["$entry"]=$size
                         string=$(dirname "$entry")
                         dirs["$string"]+=$size
