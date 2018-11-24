@@ -32,6 +32,12 @@ while getopts ':n:f:l:d:L:e:ra' OPTION; do
                 exit 2  #2=code error
             fi
             nvalue="$OPTARG"
+            #If the argument passed to the option is not a number displays error and exit
+            if ! [[ "$nvalue" =~ ^[0-9]+$ ]]
+            then
+                echo "ERRO: Passe um numero valido no argumento das opcoes"
+                exit 3 #3=code error
+            fi
         ;;
         l)
             l_flag=$((l_flag + 1))
@@ -40,6 +46,11 @@ while getopts ':n:f:l:d:L:e:ra' OPTION; do
                 exit 2  #2=code error
             fi
             lvalue="$OPTARG"
+            if ! [[ "$lvalue" =~ ^[0-9]+$ ]]
+            then
+                echo "ERRO: Passe um numero valido no argumento das opcoes"
+                exit 3 #3=code error
+            fi
         ;;
         d)
             d_flag=$((d_flag + 1))
@@ -48,6 +59,13 @@ while getopts ':n:f:l:d:L:e:ra' OPTION; do
                 exit 2  #2=code error
             fi
             dvalue="$OPTARG"
+            #This if checks if the -d option argument (a date) is true, $? -eq 0 means true
+            #If it is true it convert the argument of -d to a date
+            if [ "$d_flag" = 1 ]; then
+                if [ $? -eq 0 ]; then
+                    arg_date=$(date -d $dvalue "+%s")
+                fi
+            fi
         ;;
         L)
             L_flag=$((L_flag + 1))
@@ -56,14 +74,11 @@ while getopts ':n:f:l:d:L:e:ra' OPTION; do
                 exit 2  #2=code error
             fi
             Lvalue="$OPTARG"
-        ;;
-        e)
-            e_flag=$((e_flag + 1))
-            if [ $e_flag -ne 1 ]; then
-                echo "ERRO: Apenas pode passar uma vez cada opcao"
-                exit 2  #2=code error
+            if ! [[ "$Lvalue" =~ ^[0-9]+$ ]]
+            then
+                echo "ERRO: Passe um numero valido no argumento das opcoes"
+                exit 3 #3=code error
             fi
-            evalue="$OPTARG"
         ;;
         r)
             r_flag=$((r_flag + 1))
@@ -79,6 +94,23 @@ while getopts ':n:f:l:d:L:e:ra' OPTION; do
                 exit 2  #2=code error
             fi
         ;;
+        e)
+            e_flag=$((e_flag + 1))
+            if [ $e_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
+            evalue="$OPTARG"
+            #This will put all the lines of file in the array_files
+            if [ "$e_flag" = 1 ];then
+                i=0
+                array_files=()
+                while read line_data; do
+                    array_files[i]="${line_data}"
+                    ((++i))
+                done < "$evalue"
+            fi
+        ;;
         \?)
             echo "$(basename $0) OPTIONS: [-n arg] [-l arg] [-d arg] [-L arg] [-e arg] [-r] [-a]" >&2
             exit 1
@@ -91,24 +123,6 @@ shift "$((OPTIND - 1))"
 if [[ $l_flag == 1 && $L_flag == 1 ]]; then
     printf "Not possible to combine -l and -L, try again please.\n"
     exit 1  #1=code error
-fi
-
-#This if checks if the -d option argument (a date) is true, $? -eq 0 means true
-#If it is true it convert the argument of -d to a date
-if [ "$d_flag" = 1 ]; then
-    if [ $? -eq 0 ]; then
-        arg_date=$(date -d $dvalue "+%s")
-    fi
-fi
-
-if [ "$e_flag" = 1 ];then
-    # echo $evalue
-    i=0
-    array_files=()
-    while read line_data; do
-        array_files[i]="${line_data}"
-        ((++i))
-    done < "$evalue"
 fi
 
 #Dirs its used to store the paths and sizes to -l (and other options)
