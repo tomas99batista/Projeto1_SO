@@ -80,15 +80,14 @@ walk() {
         #FILES
         #If it is a FILE
         if [[ -f "$entry" ]]; then
+            
             #If it is readable
             if [[ -r "$entry" ]]; then
                 #Get the size and the data of the file
                 size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
                 file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
-                
                 #If l FALSE
                 if [[ "$l_flag" -eq 0 ]]; then
-                    
                     #D & N TRUE
                     if [[ "$d_flag" -eq 1 && "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
@@ -107,6 +106,7 @@ walk() {
                             fi
                         fi
                     fi
+                    
                     #D TRUE
                     if [[ "$d_flag" -eq 1 && "$n_flag" -eq 0 ]]; then
                         file_data=$(date -d "$file_data" +%s)
@@ -119,6 +119,7 @@ walk() {
                             totalspace=$((totalspace + size))
                         fi
                     fi
+                    
                     #N TRUE
                     if [[ "$d_flag" -eq 0 && "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
@@ -131,6 +132,7 @@ walk() {
                             totalspace=$((totalspace + size))
                         fi
                     fi
+                    
                     #N & D FALSE
                     #If the user passes 0 arguments it stores all the directories and files (and respective size)
                     if [[ "$d_flag" -eq 0 && "$n_flag" -eq 0 ]]; then
@@ -141,6 +143,7 @@ walk() {
                     fi
                 fi
             fi
+            
             #If the file it is not readable it will store the value of 'NA'
             if ! [[ -r "$entry" ]]; then
                 size="NA"
@@ -165,6 +168,7 @@ walk() {
                             fi
                         fi
                     fi
+                    
                     #D TRUE
                     if [[ "$d_flag" -eq 1 ]]; then #only d true
                         file_data=$(date -d "$file_data" +%s)
@@ -176,6 +180,7 @@ walk() {
                             dirs["$string"]="NA"
                         fi
                     fi
+                    
                     #N TRUE
                     if [[ "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
@@ -187,6 +192,7 @@ walk() {
                             dirs["$string"]="NA"
                         fi
                     fi
+                    
                     #N & D FALSE
                     #If the user passes 0 arguments it stores all the directories and files (and respective size)
                     if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
