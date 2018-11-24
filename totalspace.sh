@@ -24,26 +24,52 @@ a_flag=0
 while getopts ':n:f:l:d:L:ra' OPTION; do
     case "$OPTION" in
         n)
-            n_flag=1
+            #Increment the times that the user passed each option
+            n_flag=$((n_flag + 1))
+            #If user passes more than 1 time the options it exits and print an error message
+            if [ $n_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
             nvalue="$OPTARG"
         ;;
         l)
-            l_flag=1
+            l_flag=$((l_flag + 1))
+            if [ $l_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
             lvalue="$OPTARG"
         ;;
         d)
-            d_flag=1
+            d_flag=$((d_flag + 1))
+            if [ $d_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
             dvalue="$OPTARG"
         ;;
         L)
-            L_flag=1
+            L_flag=$((L_flag + 1))
+            if [ $L_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
             Lvalue="$OPTARG"
         ;;
         r)
-            r_flag=1
+            r_flag=$((r_flag + 1))
+            if [ $r_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
         ;;
         a)
-            a_flag=1
+            a_flag=$((a_flag + 1))
+            if [ $a_flag -ne 1 ]; then
+                echo "ERRO: Apenas pode passar uma vez cada opcao"
+                exit 2  #2=code error
+            fi
         ;;
         \?)
             echo "$(basename $0) OPTIONS: [-n arg] [-l arg] [-d arg] [-L arg] [-r] [-a]" >&2
@@ -80,18 +106,19 @@ walk() {
         #FILES
         #If it is a FILE
         if [[ -f "$entry" ]]; then
-            
-            #If it is readable
-            if [[ -r "$entry" ]]; then
-                #Get the size and the data of the file
-                size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
-                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
-                #If l FALSE
-                if [[ "$l_flag" -eq 0 ]]; then
+            #If l FALSE
+            if [[ "$l_flag" -eq 0 ]]; then
+                
+                #If it is readable
+                if [[ -r "$entry" ]]; then
+                    #Get the size and the data of the file
+                    size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
+                    file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                    
                     #D & N TRUE
                     if [[ "$d_flag" -eq 1 && "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
-                        #If the file name it contains parts (or it is totally equal) it passes
+                        #If the file name contains parts (or it is totally equal) it passes
                         if [[ "$base_name" =~ ^$nvalue$ ]]; then
                             file_d=$(date -d "$file_data" +%s)
                             #If the file it is older than the date passed on argument it will store
@@ -142,66 +169,68 @@ walk() {
                         totalspace=$((size + totalspace))
                     fi
                 fi
-            fi
-            
-            #If the file it is not readable it will store the value of 'NA'
-            if ! [[ -r "$entry" ]]; then
-                size="NA"
-                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
-                #l FALSE
-                if [[ "$l_flag" -eq 0 ]]; then
-                    
-                    #D & N TRUE
-                    if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
-                        base_name="$(basename "${entry}")"
-                        #If the file name it contains parts (or it is totally equal) it passes
-                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                            file_d=$(date -d "$file_data" +%s)
-                            #If the file it is older than the date passed on argument it will store
-                            if [[ "$arg_date" -ge "$file_d" ]]; then
-                                #It stores the path with file on the files array and it stores the size value
+                
+                #If the file it is not readable it will store the value of 'NA'
+                if ! [[ -r "$entry" ]]; then
+                    size="NA"
+                    file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                    #l FALSE
+                    if [[ "$l_flag" -eq 0 ]]; then
+                        
+                        #D & N TRUE
+                        if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
+                            base_name="$(basename "${entry}")"
+                            #If the file name it contains parts (or it is totally equal) it passes
+                            if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                                file_d=$(date -d "$file_data" +%s)
+                                #If the file it is older than the date passed on argument it will store
+                                if [[ "$arg_date" -ge "$file_d" ]]; then
+                                    #It stores the path with file on the files array and it stores the size value
+                                    files["${entry}"]="NA"
+                                    #It stores the path on the directories array and it stores the size
+                                    string=$(dirname "$entry")
+                                    #Increment the total space
+                                    dirs["$string"]="NA"
+                                fi
+                            fi
+                        fi
+                        
+                        #D TRUE
+                        if [[ "$d_flag" -eq 1 ]]; then #only d true
+                            file_data=$(date -d "$file_data" +%s)
+                            #If the last modify on the file it is older than the date passed on the argument
+                            #it stores the file and the directory path (and respective size)
+                            if [ "$arg_date" -ge "$file_data" ]; then
                                 files["${entry}"]="NA"
-                                #It stores the path on the directories array and it stores the size
                                 string=$(dirname "$entry")
-                                #Increment the total space
                                 dirs["$string"]="NA"
                             fi
                         fi
-                    fi
-                    
-                    #D TRUE
-                    if [[ "$d_flag" -eq 1 ]]; then #only d true
-                        file_data=$(date -d "$file_data" +%s)
-                        #If the last modify on the file it is older than the date passed on the argument
-                        #it stores the file and the directory path (and respective size)
-                        if [ "$arg_date" -ge "$file_data" ]; then
-                            files["${entry}"]="NA"
+                        
+                        #N TRUE
+                        if [[ "$n_flag" -eq 1 ]]; then
+                            base_name="$(basename "${entry}")"
+                            #If the name of the file contains (or it is totally equals) it stores
+                            #the file name and the directory path (and respective size)
+                            if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                                files["${base_name}"]="NA"
+                                string=$(dirname "$base_name")
+                                dirs["$string"]="NA"
+                            fi
+                        fi
+                        
+                        #N & D FALSE
+                        #If the user passes 0 arguments it stores all the directories and files (and respective size)
+                        if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                            files["$entry"]="NA"
                             string=$(dirname "$entry")
                             dirs["$string"]="NA"
                         fi
                     fi
-                    
-                    #N TRUE
-                    if [[ "$n_flag" -eq 1 ]]; then
-                        base_name="$(basename "${entry}")"
-                        #If the name of the file contains (or it is totally equals) it stores
-                        #the file name and the directory path (and respective size)
-                        if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                            files["${base_name}"]="NA"
-                            string=$(dirname "$base_name")
-                            dirs["$string"]="NA"
-                        fi
-                    fi
-                    
-                    #N & D FALSE
-                    #If the user passes 0 arguments it stores all the directories and files (and respective size)
-                    if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
-                        files["$entry"]="NA"
-                        string=$(dirname "$entry")
-                        dirs["$string"]="NA"
-                    fi
                 fi
             fi
+            
+            
         fi
         
         #DIRETORIES
