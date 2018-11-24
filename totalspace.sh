@@ -6,10 +6,8 @@ set -e
 set -u
 set -o pipefail
 
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-#//TODO: Tratar da -l depois da walk()
-#//TODO: NA (fix)
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
+# -l it is not 100% functional
+# -NA can bug sometimes
 
 #Initializes all flags at 0
 #If they are passed by the user they will be set to 1
@@ -32,12 +30,6 @@ while getopts ':n:f:l:d:L:ra' OPTION; do
                 exit 2  #2=code error
             fi
             nvalue="$OPTARG"
-            #If the argument passed to the option is not a number displays error and exit
-            if ! [[ "$nvalue" =~ ^[0-9]+$ ]]
-            then
-                echo "ERRO: Passe um numero valido no argumento das opcoes"
-                exit 3 #3=code error
-            fi
         ;;
         l)
             l_flag=$((l_flag + 1))
@@ -121,135 +113,132 @@ declare -A files
 #Recursive function to list directories and files
 walk() {
     totalspace=0
+    sizes=()
     for entry in "$1"/*; do
         #FILES
         #If it is a FILE
         if [[ -f "$entry" ]]; then
             #If l FALSE
-            if [[ "$l_flag" -eq 0 ]]; then
+            
+            #If it is readable
+            if [[ -r "$entry" ]]; then
+                #Get the size and the data of the file
+                size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
+                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
                 
-                #If it is readable
-                if [[ -r "$entry" ]]; then
-                    #Get the size and the data of the file
-                    size=$(stat $entry | head -2 | tail -1 | awk '{print $2}')
-                    file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                #D & N TRUE
+                if [[ "$d_flag" -eq 1 && "$n_flag" -eq 1 ]]; then
+                    base_name="$(basename "${entry}")"
+                    #If the file name contains parts (or it is totally equal) it passes
+                    if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                        file_d=$(date -d "$file_data" +%s)
+                        #If the file it is older than the date passed on argument it will store
+                        if [[ "$arg_date" -ge "$file_d" ]]; then
+                            #It stores the path with file on the files array and it stores the size value
+                            files["${entry}"]=$size
+                            string=$(dirname "$entry")
+                            #It stores the path on the directories array and it stores the size
+                            dirs["$string"]+=$size
+                            #Increment the total space
+                            totalspace=$((totalspace + size))
+                        fi
+                    fi
+                fi
+                
+                #D TRUE
+                if [[ "$d_flag" -eq 1 && "$n_flag" -eq 0 ]]; then
+                    file_data=$(date -d "$file_data" +%s)
+                    #If the last modify on the file it is older than the date passed on the argument
+                    #it stores the file and the directory path (and respective size)
+                    if [ "$arg_date" -ge "$file_data" ]; then
+                        files["${entry}"]=$size
+                        string=$(dirname "$entry")
+                        dirs["$string"]+=$size
+                        totalspace=$((totalspace + size))
+                    fi
+                fi
+                
+                #N TRUE
+                if [[ "$d_flag" -eq 0 && "$n_flag" -eq 1 ]]; then
+                    base_name="$(basename "${entry}")"
+                    #If the name of the file contains (or it is totally equals) it stores
+                    #the file name and the directory path (and respective size)
+                    if [[ "$base_name" =~ ^$nvalue$ ]]; then
+                        files["${base_name}"]=$size
+                        string=$(dirname "$base_name")
+                        dirs["$string"]+=$size
+                        totalspace=$((totalspace + size))
+                    fi
+                fi
+                
+                #N & D FALSE
+                #If the user passes 0 arguments it stores all the directories and files (and respective size)
+                if [[ "$d_flag" -eq 0 && "$n_flag" -eq 0 ]]; then
+                    files["$entry"]=$size
+                    string=$(dirname "$entry")
+                    dirs["$string"]+=$size
+                    totalspace=$((size + totalspace))
+                fi
+            fi
+            
+            #If the file it is not readable it will store the value of 'NA'
+            if ! [[ -r "$entry" ]]; then
+                size="NA"
+                file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
+                #l FALSE
+                if [[ "$l_flag" -eq 0 ]]; then
                     
                     #D & N TRUE
-                    if [[ "$d_flag" -eq 1 && "$n_flag" -eq 1 ]]; then
+                    if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
-                        #If the file name contains parts (or it is totally equal) it passes
+                        #If the file name it contains parts (or it is totally equal) it passes
                         if [[ "$base_name" =~ ^$nvalue$ ]]; then
                             file_d=$(date -d "$file_data" +%s)
                             #If the file it is older than the date passed on argument it will store
                             if [[ "$arg_date" -ge "$file_d" ]]; then
                                 #It stores the path with file on the files array and it stores the size value
-                                files["${entry}"]=$size
-                                string=$(dirname "$entry")
+                                files["${entry}"]="NA"
                                 #It stores the path on the directories array and it stores the size
-                                dirs["$string"]+=$size
+                                string=$(dirname "$entry")
                                 #Increment the total space
-                                totalspace=$((totalspace + size))
+                                dirs["$string"]="NA"
                             fi
                         fi
                     fi
                     
                     #D TRUE
-                    if [[ "$d_flag" -eq 1 && "$n_flag" -eq 0 ]]; then
+                    if [[ "$d_flag" -eq 1 ]]; then #only d true
                         file_data=$(date -d "$file_data" +%s)
                         #If the last modify on the file it is older than the date passed on the argument
                         #it stores the file and the directory path (and respective size)
                         if [ "$arg_date" -ge "$file_data" ]; then
-                            files["${entry}"]=$size
+                            files["${entry}"]="NA"
                             string=$(dirname "$entry")
-                            dirs["$string"]+=$size
-                            totalspace=$((totalspace + size))
+                            dirs["$string"]="NA"
                         fi
                     fi
                     
                     #N TRUE
-                    if [[ "$d_flag" -eq 0 && "$n_flag" -eq 1 ]]; then
+                    if [[ "$n_flag" -eq 1 ]]; then
                         base_name="$(basename "${entry}")"
                         #If the name of the file contains (or it is totally equals) it stores
                         #the file name and the directory path (and respective size)
                         if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                            files["${base_name}"]=$size
+                            files["${base_name}"]="NA"
                             string=$(dirname "$base_name")
-                            dirs["$string"]+=$size
-                            totalspace=$((totalspace + size))
+                            dirs["$string"]="NA"
                         fi
                     fi
                     
                     #N & D FALSE
                     #If the user passes 0 arguments it stores all the directories and files (and respective size)
-                    if [[ "$d_flag" -eq 0 && "$n_flag" -eq 0 ]]; then
-                        files["$entry"]=$size
+                    if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
+                        files["$entry"]="NA"
                         string=$(dirname "$entry")
-                        dirs["$string"]+=$size
-                        totalspace=$((size + totalspace))
-                    fi
-                fi
-                
-                #If the file it is not readable it will store the value of 'NA'
-                if ! [[ -r "$entry" ]]; then
-                    size="NA"
-                    file_data=$(stat $entry | tail -4 | head -1 | awk '{print $2, $3}')
-                    #l FALSE
-                    if [[ "$l_flag" -eq 0 ]]; then
-                        
-                        #D & N TRUE
-                        if [[ "$d_flag" -eq 1 ]] && [[ "$n_flag" -eq 1 ]]; then
-                            base_name="$(basename "${entry}")"
-                            #If the file name it contains parts (or it is totally equal) it passes
-                            if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                                file_d=$(date -d "$file_data" +%s)
-                                #If the file it is older than the date passed on argument it will store
-                                if [[ "$arg_date" -ge "$file_d" ]]; then
-                                    #It stores the path with file on the files array and it stores the size value
-                                    files["${entry}"]="NA"
-                                    #It stores the path on the directories array and it stores the size
-                                    string=$(dirname "$entry")
-                                    #Increment the total space
-                                    dirs["$string"]="NA"
-                                fi
-                            fi
-                        fi
-                        
-                        #D TRUE
-                        if [[ "$d_flag" -eq 1 ]]; then #only d true
-                            file_data=$(date -d "$file_data" +%s)
-                            #If the last modify on the file it is older than the date passed on the argument
-                            #it stores the file and the directory path (and respective size)
-                            if [ "$arg_date" -ge "$file_data" ]; then
-                                files["${entry}"]="NA"
-                                string=$(dirname "$entry")
-                                dirs["$string"]="NA"
-                            fi
-                        fi
-                        
-                        #N TRUE
-                        if [[ "$n_flag" -eq 1 ]]; then
-                            base_name="$(basename "${entry}")"
-                            #If the name of the file contains (or it is totally equals) it stores
-                            #the file name and the directory path (and respective size)
-                            if [[ "$base_name" =~ ^$nvalue$ ]]; then
-                                files["${base_name}"]="NA"
-                                string=$(dirname "$base_name")
-                                dirs["$string"]="NA"
-                            fi
-                        fi
-                        
-                        #N & D FALSE
-                        #If the user passes 0 arguments it stores all the directories and files (and respective size)
-                        if [[ $d_flag -eq 0 && $n_flag -eq 0 ]]; then
-                            files["$entry"]="NA"
-                            string=$(dirname "$entry")
-                            dirs["$string"]="NA"
-                        fi
+                        dirs["$string"]="NA"
                     fi
                 fi
             fi
-            
-            
         fi
         
         #DIRETORIES
@@ -268,6 +257,7 @@ walk() {
     dirs[$1]=$totalspace
 }
 
+
 #NUMERICALLY
 if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
     #With the directories passed on the arguments calls the recursive function
@@ -284,10 +274,27 @@ if [[ "$r_flag" = 0 && "$a_flag" = 0 ]]; then
             echo ${files["${k}"]} ${k}
         done | sort -rn -k1 | head -${Lvalue}   #Sorts numerically by the sizes column
     fi
-    #If the -L flag is off it will print from the directories array
-    if [ "$L_flag" = 0 ]; then
+    
+    #If the -L flag & -l flag is off it will print from the directories array
+    if [[ "$L_flag" = 0 && "$l_flag" = 0 ]]; then
         for item in ${!dirs[@]}; do
             echo ${dirs["${item}"]} "${item}"
+        done | sort -rn -k1 #Sorts numerically by the sizes column
+    fi
+    
+    #If the -l flag is on it will print from the List_Dirs array
+    declare -A l_dirs_array
+    if [ "$l_flag" = 1 ]; then
+        for item in ${!dirs[@]}; do
+            total=0
+            soma=$(builtin cd "$item" && ls -al | grep '^[-l]' | sort -nr -k5 | head -${lvalue} | awk '{ print $5 }')
+            for i in $soma; do
+                total=$((i+total))
+            done
+            l_dirs_array["$item"]=$total
+        done
+        for item in ${!l_dirs_array[@]}; do
+            echo ${l_dirs_array["${item}"]} "${item}"
         done | sort -rn -k1 #Sorts numerically by the sizes column
     fi
 fi
@@ -308,10 +315,27 @@ if [[ "$r_flag" = 1 && "$a_flag" = 0 ]]; then
             echo ${files["${k}"]} ${k}
         done | sort -rn -k1 | head -${Lvalue} | sort -n -k1 #Sorts numerically by the sizes column in reverse order
     fi
-    #If the -L flag is off it will print from the directories array
-    if [ "$L_flag" = 0 ]; then
+    
+    #If the -L flag & -l flag is off it will print from the directories array
+    if [[ "$L_flag" = 0 && "$l_flag" = 0 ]]; then
         for item in ${!dirs[@]}; do
             echo ${dirs["${item}"]} "${item}"
+        done | sort -n -k1 #Sorts numerically by the sizes column in reverse order
+    fi
+    
+    #If the -l flag is on it will print from the List_Dirs array
+    declare -A l_dirs_array
+    if [ "$l_flag" = 1 ]; then
+        for item in ${!dirs[@]}; do
+            total=0
+            soma=$(builtin cd "$item" && ls -al | grep '^[-l]' | sort -nr -k5 | head -${lvalue} | awk '{ print $5 }')
+            for i in $soma; do
+                total=$((i+total))
+            done
+            l_dirs_array["$item"]=$total
+        done
+        for item in ${!l_dirs_array[@]}; do
+            echo ${l_dirs_array["${item}"]} "${item}"
         done | sort -n -k1 #Sorts numerically by the sizes column in reverse order
     fi
 fi
@@ -332,10 +356,26 @@ if [[ "$r_flag" = 0 && "$a_flag" = 1 ]]; then
             echo ${files["${k}"]} ${k}
         done | sort -rn -k1 | head -${Lvalue} | sort -r -k2 #Sorts alphabetically by the files column
     fi
-    #If the -L flag is off it will print from the directories array
-    if [ "$L_flag" = 0 ]; then
+    #If the -L flag & -l flag is off it will print from the directories array
+    if [[ "$L_flag" = 0 && "$l_flag" = 0 ]]; then
         for item in ${!dirs[@]}; do
             echo ${dirs["${item}"]} "${item}"
+        done | sort -k2 #Sorts alphabetically by the directories column
+    fi
+    
+    #If the -l flag is on it will print from the List_Dirs array
+    declare -A l_dirs_array
+    if [ "$l_flag" = 1 ]; then
+        for item in ${!dirs[@]}; do
+            total=0
+            soma=$(builtin cd "$item" && ls -al | grep '^[-l]' | sort -nr -k5 | head -${lvalue} | awk '{ print $5 }')
+            for i in $soma; do
+                total=$((i+total))
+            done
+            l_dirs_array["$item"]=$total
+        done
+        for item in ${!l_dirs_array[@]}; do
+            echo ${l_dirs_array["${item}"]} "${item}"
         done | sort -k2 #Sorts alphabetically by the directories column
     fi
 fi
@@ -356,10 +396,26 @@ if [[ "$r_flag" = 1 && "$a_flag" = 1 ]]; then
             echo ${files["${k}"]} ${k}
         done | sort -rn -k1 | head -${Lvalue} | sort -k2 #Sorts alphabetically by the files column in reverse order
     fi
-    #If the -L flag is off it will print from the directories array
-    if [ "$L_flag" = 0 ]; then
+    #If the -L flag & -l flag is off it will print from the directories array
+    if [[ "$L_flag" = 0 && "$l_flag" = 0 ]]; then
         for item in ${!dirs[@]}; do
             echo ${dirs["${item}"]} "${item}"
         done | sort -r -k2 #Sorts alphabetically by the directories column in reverse order
+    fi
+    
+    #If the -l flag is on it will print from the List_Dirs array
+    declare -A l_dirs_array
+    if [ "$l_flag" = 1 ]; then
+        for item in ${!dirs[@]}; do
+            total=0
+            soma=$(builtin cd "$item" && ls -al | grep '^[-l]' | sort -nr -k5 | head -${lvalue} | awk '{ print $5 }')
+            for i in $soma; do
+                total=$((i+total))
+            done
+            l_dirs_array["$item"]=$total
+        done
+        for item in ${!l_dirs_array[@]}; do
+            echo ${l_dirs_array["${item}"]} "${item}"
+        done | sort -r -k2 #Sorts alphabetically by the directories column
     fi
 fi
